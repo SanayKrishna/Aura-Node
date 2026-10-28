@@ -29,10 +29,10 @@ You need Python 3.10+, Node 18+, a Gemini API key, and a Google Custom Search en
 cd backend
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install fastapi uvicorn python-dotenv langchain langchain-google-genai langchain-google-community
+pip install -r requirements.txt
 ```
 
-Create `backend/.env`:
+Copy `backend/.env.example` to `backend/.env` and fill in the keys:
 
 ```env
 GOOGLE_API_KEY=your-gemini-key
@@ -63,12 +63,12 @@ backend/
   main.py           FastAPI app and the search + Gemini chain
   ingest.py         scrapes pages into a Supabase vector store (not used by /ask)
   teach.py          adds specific pages to the same store
-  check.py          quick key and connection check
+  check.py          lists the Gemini models your key can use
 frontend/
   app/page.tsx      chat UI
 ```
 
 ## Notes
 
-- `backend/requirements.txt` is a full environment freeze saved as UTF-16 and includes many unrelated packages. The `pip install` line above lists what the app needs.
+- LangChain is pinned to 0.3.x because the code uses imports that LangChain 1.0 removed.
 - Answers are only as good as the five search results behind them, and the restricted site list leaves out a lot of reviews and benchmarks.

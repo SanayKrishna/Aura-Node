@@ -1,117 +1,74 @@
-# Aura Node 🤖
+# Aura Node
 
-**Aura Node is a full-stack, AI-powered chat assistant designed to be your personal expert for building PCs. It leverages the power of large language models and real-time web search to provide accurate, up-to-date answers to all your hardware compatibility, installation, and troubleshooting questions.**
+A chat assistant for building PCs, aimed at buyers in India. You ask a question about parts, compatibility or prices, the backend runs a Google search restricted to PC retail and build sites, and Gemini answers using those results as context.
 
-This project is a complete implementation of a modern AI application, featuring a sleek, responsive frontend and a powerful, intelligent backend.
+## How it works
 
+1. The Next.js frontend sends your question to `POST /ask` on the FastAPI backend.
+2. A LangChain chain runs a Google Custom Search for the question, limited to pcpartpicker.com, mdcomputers.in, vedantcomputers.com and amazon.in, and keeps the top 5 results.
+3. The results and the question go into a prompt for Gemini 2.5 Pro, which writes the answer.
+4. The answer is shown in the chat window.
 
+Because every answer starts with a live search, prices and availability come from current listings instead of the model's training data.
 
-## ✨ Features
+There is also an earlier retrieval approach in the repo. `ingest.py` and `teach.py` scrape pages and store their embeddings in a Supabase vector table, and `backend/docs/` holds a motherboard manual used as source material. The current `/ask` endpoint does not use that store.
 
-*   **Intelligent Chat Interface:** A clean, modern, and responsive UI built with Next.js and Tailwind CSS.
-*   **Live Research Agent:** The AI is not limited to pre-fed knowledge. For every question, it performs a live Google search to find the most relevant, up-to-the-minute information.
-*   **Natural Language Understanding:** Powered by Google's Gemini Pro, the bot can understand complex, technical questions.
-*   **Clean, Formatted Answers:** Advanced prompt engineering ensures the AI provides clear, readable answers without messy special characters.
-*   **Scalable Architecture:** A decoupled frontend and backend, perfect for future expansion and development.
+## Stack
 
----
+- Frontend: Next.js (App Router), TypeScript, Tailwind CSS, Lucide icons
+- Backend: FastAPI, LangChain, Gemini (`langchain-google-genai`), Google Custom Search
+- Optional: Supabase vector store for the ingest scripts
 
-## 🛠️ Tech Stack
+## Run it
 
-This project is a demonstration of a modern, full-stack AI architecture.
+You need Python 3.10+, Node 18+, a Gemini API key, and a Google Custom Search engine ID with its API key.
 
-#### **Frontend (UI)**
-*   **Framework:** [Next.js](https://nextjs.org/) (React)
-*   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-*   **Icons:** [Lucide React](https://lucide.dev/)
-*   **Language:** TypeScript
-
-#### **Backend (API)**
-*   **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (Python)
-*   **AI Orchestration:** [LangChain](https://www.langchain.com/)
-*   **Core AI Model:** [Google Gemini Pro](https://deepmind.google/technologies/gemini/)
-
-#### **AI Core & Tools**
-*   **LLM & Embeddings:** Google Gemini API
-*   **Live Data Source:** Google Custom Search API
-*   **Autonomous Agent:** The backend features a "Live Researcher Agent" that uses Google Search as a tool to find real-time context for every user query.
-
----
-
-## 🚀 Getting Started
-
-To run this project locally, you will need two separate terminals.
-
-### Prerequisites
-
-*   Python 3.10+
-*   Node.js (LTS version)
-*   Git
-*   API keys for Google AI (Gemini) and Google Custom Search.
-
-### Backend Setup
-
-1.  **Navigate to the backend directory:**
-    ```bash
-    cd backend
-    ```
-
-2.  **Create and activate a virtual environment:**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-    ```
-
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt 
-    ```
-    *(**Note:** You will need to create a `requirements.txt` file. See the section below.)*
-
-4.  **Set up environment variables:**
-    *   Create a file named `.env` in the `backend` directory.
-    *   Add your API keys to it (see `.env.example` for the format).
-
-5.  **Run the server:**
-    ```bash
-    uvicorn main:app --reload
-    ```
-    The backend will be running at `http://localhost:8000`.
-
-### Frontend Setup
-
-1.  **Navigate to the frontend directory:**
-    ```bash
-    cd frontend
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-3.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-    The frontend will be running at `http://localhost:3000`.
-
----
-
-## 📝 Next Steps: Creating `requirements.txt`
-
-To make your backend easy for others to set up, it's best practice to create a `requirements.txt` file.
-
-1.  Navigate to your `backend` directory in the terminal.
-2.  Make sure your virtual environment is active.
-3.  Run the following command:
-    ```bash
-    pip freeze > requirements.txt
-    ```
-This command will automatically generate a list of all the Python packages your project needs. Be sure to commit this new file to your GitHub repository!
+**Backend**
 
 ```bash
-git add backend/requirements.txt
-git commit -m "Add backend requirements file"
-git push
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install fastapi uvicorn python-dotenv langchain langchain-google-genai langchain-google-community
 ```
+
+Create `backend/.env`:
+
+```env
+GOOGLE_API_KEY=your-gemini-key
+GOOGLE_CSE_ID=your-search-engine-id
+GOOGLE_SEARCH_API_KEY=your-custom-search-key
+```
+
+```bash
+uvicorn main:app --reload
+```
+
+The API runs on http://localhost:8000.
+
+**Frontend**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. The frontend calls the backend at `http://127.0.0.1:8000`, and the backend only accepts requests from `localhost:3000`.
+
+## Project layout
+
+```text
+backend/
+  main.py           FastAPI app and the search + Gemini chain
+  ingest.py         scrapes pages into a Supabase vector store (not used by /ask)
+  teach.py          adds specific pages to the same store
+  check.py          quick key and connection check
+frontend/
+  app/page.tsx      chat UI
+```
+
+## Notes
+
+- `backend/requirements.txt` is a full environment freeze saved as UTF-16 and includes many unrelated packages. The `pip install` line above lists what the app needs.
+- Answers are only as good as the five search results behind them, and the restricted site list leaves out a lot of reviews and benchmarks.
